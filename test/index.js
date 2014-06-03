@@ -22,6 +22,12 @@ function client(srv, nsp, opts){
 }
 
 describe('socket.io-mongo', function(){
+  beforeEach(function(done){ //initialize collection
+    var cli = mubsub('mongodb://localhost:27017/test');
+    var channel = cli.channel('socket.io');
+    channel.publish('socket.io', 'init', done);
+  });
+  
   describe('broadcast', function(){
     beforeEach(function(done){
       this.mubsubClients = [];

@@ -51,7 +51,6 @@ function adapter(uri, opts){
   // init clients if needed
   if (!client) client = socket ? mubsub(socket) : mubsub('mongodb://' + host + ':' + port + '/' + db);
 
-
   // this server's key
   var uid = uid2(6);
   
@@ -84,7 +83,7 @@ function adapter(uri, opts){
    */
 
   Mongo.prototype.onmessage = function(msg){
-    if (uid == msg.uid) return debug('ignore same uid');
+    if (uid == msg.uid || !msg.uid) return debug('ignore same uid');
     
     var args = msgpack.decode(msg.data.buffer);
     if (args[0] && args[0].nsp === undefined)
@@ -106,7 +105,10 @@ function adapter(uri, opts){
 
   Mongo.prototype.broadcast = function(packet, opts, remote){
     Adapter.prototype.broadcast.call(this, packet, opts);
-    if (!remote) channel.publish(key, { uid: uid, data: msgpack.encode([packet, opts]) });
+    
+    if (!remote) {
+      channel.publish(key, { uid: uid, data: msgpack.encode([packet, opts]) });
+    }
   };
 
   return Mongo;
