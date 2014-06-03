@@ -1,13 +1,13 @@
 # socket.io-adapter-mongo
 
-## This module is modified from [socket.io-redis](https://github.com/Automattic/socket.io-redis)
+*This module is modified from [socket.io-redis](https://github.com/Automattic/socket.io-redis)
 
 ## How to use
 
 ```js
 var io = require('socket.io')(3000);
 var mongo = require('socket.io-adapter-mongo');
-io.adapter(mongo({ host: 'localhost', port: 27017 }));
+io.adapter(mongo({ host: 'localhost', port: 27017, db: 'mubsub' }));
 ```
 
 By running socket.io with the `socket.io-adapter-mongo` adapter you can run
@@ -36,7 +36,7 @@ The following options are allowed:
   be used instead of the host and port options if specified.
 - `client`: optional, the mubsub client to publish events on
 
-If you decide to supply client, make sure you use [mubsub](https://github.com/scttnlsn/mubsub) as a client or one with an equivalent API.
+If you decide to supply a client, make sure you use [mubsub](https://github.com/scttnlsn/mubsub) as a client or one with an equivalent API.
 
 ## License
 
