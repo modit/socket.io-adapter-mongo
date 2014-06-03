@@ -1,5 +1,8 @@
 # socket.io-adapter-mongo
 
+[![Build Status](https://secure.travis-ci.org/modit/socket.io-adapter-mongo.png)](http://travis-ci.org/modit/socket.io-adapter-mongo)
+[![NPM version](https://badge.fury.io/js/socket.io-adapter-mongo.png)](http://badge.fury.io/js/socket.io-adapter-mongo)
+
 *This module is modified from [socket.io-redis](https://github.com/Automattic/socket.io-redis)
 
 ## How to use
