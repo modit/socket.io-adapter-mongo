@@ -23,21 +23,24 @@ function client(srv, nsp, opts){
 
 describe('socket.io-mongo', function(){
   beforeEach(function(done){ //initialize collection
-    var cli = mubsub('mongodb://localhost:27017/test');
+    var cli = mubsub('mongodb://test:test@localhost:27017/test');
     var channel = cli.channel('socket.io');
     channel.publish('socket.io', 'init', done);
   });
   
   describe('broadcast', function(){
     beforeEach(function(done){
-      this.mubsubClients = [];
       var self = this;
-
-      async.times(2, function(n, next){
-        var cli = mubsub('mongodb://localhost:27017/test');
+      
+      var connectOpts = [
+        'mongodb://test:test@localhost:27017/test',
+        'test:test@localhost:27017/test',
+        { host: 'localhost', port: '27017', username: 'test', password: 'test', db: 'test'}
+      ];
+      
+      async.times(3, function(n, next){
         var srv = http();
-        var sio = io(srv, { adapter: mongoAdapter({ client: cli }) });
-        self.mubsubClients.push(cli);
+        var sio = io(srv, { adapter:  mongoAdapter(connectOpts[n]) });
 
         srv.listen(function(){
           ['/', '/nsp'].forEach(function(name){
@@ -96,12 +99,6 @@ describe('socket.io-mongo', function(){
       }, function(err, sockets){
         self.sockets = sockets.reduce(function(a, b){ return a.concat(b); });
         done(err);
-      });
-    });
-
-    afterEach(function(){
-      this.mubsubClients.forEach(function(cli){
-        cli.close();
       });
     });
 

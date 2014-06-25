@@ -10,6 +10,8 @@ var uid2    = require('uid2')
   , debug   = require('debug')('socket.io-mongo')
 ;
 
+var URI_MATCH = /(?:mongodb\:\/\/)?(?:(.*)\:(.*)\@)?(.*)\:(\d+)(?:\/(.*))?/i;
+
 /**
  * Module exports.
  */
@@ -34,22 +36,27 @@ function adapter(uri, opts){
   }
 
   // handle uri string
+  uri = (uri || '').match(URI_MATCH);
   if (uri) {
-    uri = uri.split(':');
-    opts.host = uri[0];
-    opts.port = uri[1];
+    opts.username = uri[1];
+    opts.password = uri[2];
+    opts.host = uri[3];
+    opts.port = uri[4];
+    opts.db   = uri[5];
   }
 
   // opts
   var socket  = opts.socket;
+  var creds   = (opts.username && opts.password) ? opts.username + ':' + opts.password + '@' : '';
   var host    = opts.host || '127.0.0.1';
   var port    = Number(opts.port || 27017);
   var db      = opts.db || 'mubsub';
+  
   var client  = opts.client;
   var key     = opts.key || 'socket.io';
 
   // init clients if needed
-  if (!client) client = socket ? mubsub(socket) : mubsub('mongodb://' + host + ':' + port + '/' + db);
+  if (!client) client = socket ? mubsub(socket) : mubsub('mongodb://' + creds + host + ':' + port + '/' + db);
 
   // this server's key
   var uid = uid2(6);
@@ -66,7 +73,6 @@ function adapter(uri, opts){
   function Mongo(nsp){
     Adapter.call(this, nsp);
 
-    var self = this;
     channel.subscribe(key, this.onmessage.bind(this));
   }
 

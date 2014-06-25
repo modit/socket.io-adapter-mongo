@@ -24,8 +24,12 @@ process, you should use [socket.io-emitter](http:///github.com/Automattic/socket
 
 ### adapter(uri[, opts])
 
-`uri` is a string like `localhost:27017` where your mongo server
-is located. For a list of options see below.
+`uri` is a string that matches a mongodb connection string
+```
+mongodb://localhost:27017
+mongodb://user:pass@localhost:27017/test
+localhost:27017
+```
 
 ### adapter(opts)
 
@@ -35,6 +39,8 @@ The following options are allowed:
 - `host`: host to connect to mongo on (`localhost`)
 - `port`: port to connect to mongo on (`27017`)
 - `db`: db to use in mongo (`mubsub`)
+- `username`: username to connect to mongo with
+- `password`: password to connect to mongo with
 - `socket`: unix domain socket to connect to mongo (`"/tmp/mongo.sock"`). Will
   be used instead of the host and port options if specified.
 - `client`: optional, the mubsub client to publish events on
