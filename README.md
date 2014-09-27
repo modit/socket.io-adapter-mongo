@@ -17,9 +17,6 @@ By running socket.io with the `socket.io-adapter-mongo` adapter you can run
 multiple socket.io instances in different processes or servers that can
 all broadcast and emit events to and from each other.
 
-If you need to emit events to socket.io instances from a non-socket.io
-process, you should use [socket.io-emitter](http:///github.com/Automattic/socket.io-emitter).
-
 ## API
 
 ### adapter(uri[, opts])
