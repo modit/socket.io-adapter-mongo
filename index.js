@@ -35,7 +35,13 @@ function adapter(uri, opts) {
 
 	// handle uri string
 	if (uri) {
-		// Parse to url object
+
+		// ensure uri has mongodb scheme
+		if (uri.indexOf('mongodb://') !== 0) {
+			uri = 'mongodb://' + uri;
+		}
+
+		// Parse to uri into an object
 		var uriObj = mongodbUri.parse(uri);
 		if (uriObj.username && uriObj.password) {
 			opts.username = uriObj.username;
