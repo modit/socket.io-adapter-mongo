@@ -7,10 +7,11 @@
   },
   "dependencies": {
     "debug": "0.7.4",
-    "uid2": "0.0.3",
-    "mubsub": "1.0.4",
+    "mongodb-uri": "^0.9.7",
     "msgpack-js": "0.3.0",
-    "socket.io-adapter": "0.3.0"
+    "mubsub": "1.0.4",
+    "socket.io-adapter": "0.3.0",
+    "uid2": "0.0.3"
   },
   "devDependencies": {
     "socket.io": "1.0.2",

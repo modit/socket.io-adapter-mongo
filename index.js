@@ -1,16 +1,14 @@
-
 /**
  * Module dependencies.
  */
 
-var uid2    = require('uid2')
-  , mubsub  = require('mubsub')
-  , msgpack = require('msgpack-js')
-  , Adapter = require('socket.io-adapter')
-  , debug   = require('debug')('socket.io-mongo')
-;
-
-var URI_MATCH = /(?:mongodb\:\/\/)?(?:(.*)\:(.*)\@)?(.*)\:(\d+)(?:\/(.*))?/i;
+var uid2 = require('uid2')
+		, mubsub = require('mubsub')
+		, msgpack = require('msgpack-js')
+		, Adapter = require('socket.io-adapter')
+		, debug = require('debug')('socket.io-mongo')
+		, mongodbUri = require('mongodb-uri');
+		;
 
 /**
  * Module exports.
@@ -26,97 +24,106 @@ module.exports = adapter;
  * @api public
  */
 
-function adapter(uri, opts){
-  opts = opts || {};
+function adapter(uri, opts) {
+	opts = opts || {};
 
-  // handle options only
-  if ('object' == typeof uri) {
-    opts = uri;
-    uri = null;
-  }
+	// handle options only
+	if ('object' == typeof uri) {
+		opts = uri;
+		uri = null;
+	}
 
-  // handle uri string
-  uri = (uri || '').match(URI_MATCH);
-  if (uri) {
-    opts.username = uri[1];
-    opts.password = uri[2];
-    opts.host = uri[3];
-    opts.port = uri[4];
-    opts.db   = uri[5];
-  }
+	// handle uri string
+	if (uri) {
 
-  // opts
-  var socket  = opts.socket;
-  var creds   = (opts.username && opts.password) ? opts.username + ':' + opts.password + '@' : '';
-  var host    = opts.host || '127.0.0.1';
-  var port    = Number(opts.port || 27017);
-  var db      = opts.db || 'mubsub';
-  
-  var client  = opts.client;
-  var key     = opts.key || 'socket.io';
+		// ensure uri has mongodb scheme
+		if (uri.indexOf('mongodb://') !== 0) {
+			uri = 'mongodb://' + uri;
+		}
 
-  // init clients if needed
-  if (!client) client = socket ? mubsub(socket) : mubsub('mongodb://' + creds + host + ':' + port + '/' + db);
+		// Parse to uri into an object
+		var uriObj = mongodbUri.parse(uri);
+		if (uriObj.username && uriObj.password) {
+			opts.username = uriObj.username;
+			opts.password = uriObj.password;
+		}
+		opts.host = uriObj.hosts[0].host;
+		opts.port = uriObj.hosts[0].port;
+		opts.db = uriObj.database;
+	}
 
-  // this server's key
-  var uid = uid2(6);
-  
-  channel = client.channel(key);
+	// opts
+	var socket = opts.socket;
+	var creds = (opts.username && opts.password) ? opts.username + ':' + opts.password + '@' : '';
+	var host = opts.host || '127.0.0.1';
+	var port = Number(opts.port || 27017);
+	var db = opts.db || 'mubsub';
 
-  /**
-   * Adapter constructor.
-   *
-   * @param {String} namespace name
-   * @api public
-   */
+	var client = opts.client;
+	var key = opts.key || 'socket.io';
 
-  function Mongo(nsp){
-    Adapter.call(this, nsp);
+	// init clients if needed
+	if (!client) client = socket ? mubsub(socket) : mubsub('mongodb://' + creds + host + ':' + port + '/' + db);
 
-    channel.subscribe(key, this.onmessage.bind(this));
-  }
+	// this server's key
+	var uid = uid2(6);
 
-  /**
-   * Inherits from `Adapter`.
-   */
+	channel = client.channel(key);
 
-  Mongo.prototype.__proto__ = Adapter.prototype;
+	/**
+	 * Adapter constructor.
+	 *
+	 * @param {String} namespace name
+	 * @api public
+	 */
 
-  /**
-   * Called with a subscription message
-   *
-   * @api private
-   */
+	function Mongo(nsp) {
+		Adapter.call(this, nsp);
 
-  Mongo.prototype.onmessage = function(msg){
-    if (uid == msg.uid || !msg.uid) return debug('ignore same uid');
-    
-    var args = msgpack.decode(msg.data.buffer);
-    if (args[0] && args[0].nsp === undefined)
-      args[0].nsp = '/';
+		channel.subscribe(key, this.onmessage.bind(this));
+	}
 
-    if (!args[0] || args[0].nsp != this.nsp.name) return debug('ignore different namespace');
-    args.push(true);
-    this.broadcast.apply(this, args);
-  };
+	/**
+	 * Inherits from `Adapter`.
+	 */
 
-  /**
-   * Broadcasts a packet.
-   *
-   * @param {Object} packet to emit
-   * @param {Object} options
-   * @param {Boolean} whether the packet came from another node
-   * @api public
-   */
+	Mongo.prototype.__proto__ = Adapter.prototype;
 
-  Mongo.prototype.broadcast = function(packet, opts, remote){
-    Adapter.prototype.broadcast.call(this, packet, opts);
-    
-    if (!remote) {
-      channel.publish(key, { uid: uid, data: msgpack.encode([packet, opts]) });
-    }
-  };
+	/**
+	 * Called with a subscription message
+	 *
+	 * @api private
+	 */
 
-  return Mongo;
+	Mongo.prototype.onmessage = function (msg) {
+		if (uid == msg.uid || !msg.uid) return debug('ignore same uid');
+
+		var args = msgpack.decode(msg.data.buffer);
+		if (args[0] && args[0].nsp === undefined)
+			args[0].nsp = '/';
+
+		if (!args[0] || args[0].nsp != this.nsp.name) return debug('ignore different namespace');
+		args.push(true);
+		this.broadcast.apply(this, args);
+	};
+
+	/**
+	 * Broadcasts a packet.
+	 *
+	 * @param {Object} packet to emit
+	 * @param {Object} options
+	 * @param {Boolean} whether the packet came from another node
+	 * @api public
+	 */
+
+	Mongo.prototype.broadcast = function (packet, opts, remote) {
+		Adapter.prototype.broadcast.call(this, packet, opts);
+
+		if (!remote) {
+			channel.publish(key, { uid: uid, data: msgpack.encode([packet, opts]) });
+		}
+	};
+
+	return Mongo;
 
 }
