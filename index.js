@@ -68,7 +68,7 @@ function adapter(uri, opts) {
 	// this server's key
 	var uid = uid2(6);
 
-	channel = client.channel(key);
+	var channel = client.channel(key);
 
 	/**
 	 * Adapter constructor.
