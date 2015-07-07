@@ -63,7 +63,8 @@ function adapter(uri, opts) {
 	var key = opts.key || 'socket.io';
 
 	// init clients if needed
-	if (!client) client = socket ? mubsub(socket) : mubsub('mongodb://' + creds + host + ':' + port + '/' + db);
+	var uri = 'mongodb://' + creds + host + ':' + port + '/' + db
+	if (!client) client = socket ? mubsub(socket) : mubsub(uri, opts);
 
 	// this server's key
 	var uid = uid2(6);
