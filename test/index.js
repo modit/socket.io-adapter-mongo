@@ -1,25 +1,9 @@
-var http          = require('http').Server
-  , io            = require('socket.io')
-  , ioc           = require('socket.io-client')
-  , expect        = require('expect.js')
-  , async         = require('async')
-  , mubsub        = require('mubsub')
-  , mongoAdapter  = require('../')
-;
-
-
-function client(srv, nsp, opts){
-  if ('object' == typeof nsp) {
-    opts = nsp;
-    nsp = null;
-  }
-  var addr = srv.address();
-  if (!addr) {
-    addr = srv.listen().address();
-  }
-  var url = 'ws://' + addr.address + ':' + addr.port + (nsp || '');
-  return ioc(url, opts);
-}
+var http = require('http').Server;
+var io = require('socket.io');
+var ioc = require('socket.io-client');
+var expect = require('expect.js');
+var mubsub = require('mubsub')
+var adapter = require('../');
 
 describe('socket.io-mongo', function(){
   beforeEach(function(done){ //initialize collection
@@ -28,104 +12,73 @@ describe('socket.io-mongo', function(){
     channel.publish('socket.io', 'init', done);
   });
   
-  describe('broadcast', function(){
-    beforeEach(function(done){
-      var self = this;
-      
-      var connectOpts = [
-        'mongodb://test:test@localhost:27017/test',
-        'test:test@localhost:27017/test',
-        { host: 'localhost', port: '27017', username: 'test', password: 'test', db: 'test'}
-      ];
-      
-      async.times(3, function(n, next){
-        var srv = http();
-        var sio = io(srv, { adapter:  mongoAdapter(connectOpts[n]) });
+  it('broadcasts', function (done){
+    create(function(server1, client1){
+      create(function(server2, client2){
+        client1.on('woot', function(a, b){
+          expect(a).to.eql([]);
+          expect(b).to.eql({ a: 'b' });
+          done();
+        });
+        server2.on('connection', function(c2){
+          c2.broadcast.emit('woot', [], { a: 'b' });
+        });
+      });
+    });
+  });
 
-        srv.listen(function(){
-          ['/', '/nsp'].forEach(function(name){
-            sio.of(name).on('connection', function(socket){
-              socket.on('join', function(callback){
-                socket.join('room', callback);
-              });
+  it('broadcasts to rooms', function(done){
+    create(function(server1, client1){
+      create(function(server2, client2){
+        create(function(server3, client3){
+          server1.on('connection', function(c1){
+            c1.join('woot');
+          });
 
-              socket.on('socket broadcast', function(data){
-                socket.broadcast.to('room').emit('broadcast', data);
-              });
-
-              socket.on('namespace broadcast', function(data){
-                sio.of('/nsp').in('room').emit('broadcast', data);
-              });
+          server2.on('connection', function(c2){
+            // does not join, performs broadcast
+            c2.on('do broadcast', function(){
+              c2.broadcast.to('woot').emit('broadcast');
             });
           });
 
-          async.parallel([
-            function(callback){
-              async.times(2, function(n, next){
-                var socket = client(srv, '/nsp', {forceNew: true});
-                socket.on('connect', function(){
-                  socket.emit('join', function(){
-                    next(null, socket);
-                  });
-                });
-              }, callback);
-            },
-            function(callback){
-              // a socket of the same namespace but not joined in the room.
-              var socket = client(srv, '/nsp', {forceNew: true});
-              socket.on('connect', function(){
-                socket.on('broadcast', function(){
-                  throw new Error('Called unexpectedly: different room');
-                });
-                callback();
-              });
-            },
-            function(callback){
-              // a socket joined in a room but for a different namespace.
-              var socket = client(srv, {forceNew: true});
-              socket.on('connect', function(){
-                socket.on('broadcast', function(){
-                  throw new Error('Called unexpectedly: different namespace');
-                });
-                socket.emit('join', function(){
-                  callback();
-                });
-              });
-            }
-          ], function(err, results){
-            next(err, results[0]);
+          server3.on('connection', function(c3){
+            // does not join, signals broadcast
+            client2.emit('do broadcast');
+          });
+
+          client1.on('broadcast', function(){
+            setTimeout(done, 100);
+          });
+
+          client2.on('broadcast', function(){
+            throw new Error('Not in room');
+          });
+
+          client3.on('broadcast', function(){
+            throw new Error('Not in room');
           });
         });
-      }, function(err, sockets){
-        self.sockets = sockets.reduce(function(a, b){ return a.concat(b); });
-        done(err);
       });
-    });
-
-    it('should broadcast from a socket', function(done){
-      async.each(this.sockets.slice(1), function(socket, next){
-        socket.on('broadcast', function(message){
-          expect(message).to.equal('hi');
-          next();
-        });
-      }, done);
-
-      var socket = this.sockets[0];
-      socket.on('broadcast', function(){
-        throw new Error('Called unexpectedly: same socket');
-      });
-      socket.emit('socket broadcast', 'hi');
-    });
-
-    it('should broadcast from a namespace', function(done){
-      async.each(this.sockets, function(socket, next){
-        socket.on('broadcast', function(message){
-          expect(message).to.equal('hi');
-          next();
-        });
-      }, done);
-
-      this.sockets[0].emit('namespace broadcast', 'hi');
     });
   });
+  
+  // create a pair of socket.io server+client
+  function create(nsp, fn){
+    var srv = http();
+    var sio = io(srv );
+    sio.adapter(adapter('mongodb://test:test@localhost:27017/test'));
+    srv.listen(function(err){
+      if (err) throw err; // abort tests
+      if ('function' == typeof nsp) {
+        fn = nsp;
+        nsp = '';
+      }
+      nsp = nsp || '/';
+      var addr = srv.address();
+      var url = 'http://localhost:' + addr.port + nsp;
+      fn(sio.of(nsp), ioc(url));
+    });
+  }
+
 });
