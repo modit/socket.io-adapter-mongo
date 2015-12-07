@@ -13,6 +13,8 @@ describe('socket.io-mongo', function(){
   });
   
   it('broadcasts', function (done){
+    this.timeout(5000);
+    
     create(function(server1, client1){
       create(function(server2, client2){
         client1.on('woot', function(a, b){
@@ -28,6 +30,8 @@ describe('socket.io-mongo', function(){
   });
 
   it('broadcasts to rooms', function(done){
+    this.timeout(5000);
+    
     create(function(server1, client1){
       create(function(server2, client2){
         create(function(server3, client3){
