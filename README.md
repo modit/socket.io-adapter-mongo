@@ -1,3 +1,6 @@
+# :no_entry: [DEPRECATED]
+## This project has a new maintainer: [lklepner/socket.io-adapter-mongo](https://github.com/lklepner/socket.io-adapter-mongo). Please direct all issues and pull requests there.
+
 # socket.io-adapter-mongo
 
 [![Build Status](https://secure.travis-ci.org/modit/socket.io-adapter-mongo.png)](http://travis-ci.org/modit/socket.io-adapter-mongo)
